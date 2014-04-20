@@ -10,4 +10,4 @@ Build Instructions:
    original Minix files.
 2. In the same directory type 'make' to build and install
    the Minix kernel.
-3. In the test director type 'make' to build both the tests.
+3. In the test directory type 'make' to build both the tests.
