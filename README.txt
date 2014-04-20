@@ -5,7 +5,7 @@ CMPS 111: Spring 2014
 CREATED (4-19-2014)
 
 Build Instructions:
-1. In the top-level directory type 'copy-all' to copy
+1. In the top-level directory type 'make copy-all' to copy
    our files to the Minix system. This overwrites the
    original Minix files.
 2. In the same directory type 'make' to build and install
