@@ -17,6 +17,11 @@
 PRIVATE timer_t sched_timer;
 PRIVATE unsigned balance_timeout;
 
+/* CHANGED START (4-21-2014) */
+#define MIN_TICKETS 1
+#define MAX_TICKETS 100
+/* CHANGED END (4-21-2014) */
+
 #define BALANCE_TIMEOUT	5 /* how often to balance queues in seconds */
 
 FORWARD _PROTOTYPE( int schedule_process, (struct schedproc * rmp)	);
@@ -40,13 +45,20 @@ PUBLIC int do_noquantum(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	if (rmp->priority < MIN_USER_Q) {
+
+	/*
+	If we have a user process play the lottery! Set flags.
+	*/
+
+	/* Want to only lower priority of kernel processes. */
+	if (rmp->priority < MIN_USER_Q) { /* If this priority is less than the min priority for the user. */
 		rmp->priority += 1; /* lower priority */
 	}
 
 	if ((rv = schedule_process(rmp)) != OK) {
 		return rv;
 	}
+	
 	return OK;
 }
 
@@ -113,6 +125,7 @@ PUBLIC int do_start_scheduling(message *m_ptr)
 		 * from the parent */
 		rmp->priority   = rmp->max_priority;
 		rmp->time_slice = (unsigned) m_ptr->SCHEDULING_QUANTUM;
+		/* We have a system process! */
 		break;
 		
 	case SCHEDULING_INHERIT:
@@ -123,8 +136,12 @@ PUBLIC int do_start_scheduling(message *m_ptr)
 				&parent_nr_n)) != OK)
 			return rv;
 
-		rmp->priority = schedproc[parent_nr_n].priority;
+		//rmp->priority = schedproc[parent_nr_n].priority;
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
+
+		/* We have a user process! Give it 20 tickets. */
+		rmp->priority = LOSER_Q;
+		
 		break;
 		
 	default: 
@@ -166,7 +183,7 @@ PUBLIC int do_start_scheduling(message *m_ptr)
 PUBLIC int do_nice(message *m_ptr)
 {
 	struct schedproc *rmp;
-	int rv;
+	//int rv;
 	int proc_nr_n;
 	unsigned new_q, old_q, old_max_q;
 
@@ -181,26 +198,31 @@ PUBLIC int do_nice(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-	if (new_q >= NR_SCHED_QUEUES) {
-		return EINVAL;
-	}
+
+
+	/* Allocate tickets based on m_ptr. */
+	// Will need an allocate function. Must pass rmp. */
+
+	//new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+	//if (new_q >= NR_SCHED_QUEUES) {
+	//	return EINVAL;
+	//}
 
 	/* Store old values, in case we need to roll back the changes */
-	old_q     = rmp->priority;
-	old_max_q = rmp->max_priority;
+	//old_q     = rmp->priority;
+	//old_max_q = rmp->max_priority;
 
 	/* Update the proc entry and reschedule the process */
-	rmp->max_priority = rmp->priority = new_q;
+	//rmp->max_priority = rmp->priority = new_q;
 
-	if ((rv = schedule_process(rmp)) != OK) {
+	//if ((rv = schedule_process(rmp)) != OK) {
 		/* Something went wrong when rescheduling the process, roll
 		 * back the changes to proc struct */
-		rmp->priority     = old_q;
-		rmp->max_priority = old_max_q;
-	}
+		//rmp->priority     = old_q;
+		//rmp->max_priority = old_max_q;
+	//}
 
-	return rv;
+	return schedule_process(rmp);
 }
 
 /*===========================================================================*
@@ -246,6 +268,7 @@ PRIVATE void balance_queues(struct timer *tp)
 	int proc_nr;
 	int rv;
 
+	/* ONLY NEED TO INCREASE FOR SYSTEM PROCESSES. */
 	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
 		if (rmp->flags & IN_USE) {
 			if (rmp->priority > rmp->max_priority) {
@@ -257,3 +280,16 @@ PRIVATE void balance_queues(struct timer *tp)
 
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
 }
+
+/*===========================================================================*
+ *				super_lotto				     *
+ *===========================================================================*/
+ PRIVATE void supper_lotto(void)
+ {
+ 	struct schedproc *rmp; /* The process. */
+ 	int rv, proc_nr_n;
+ 	/* Collect tickets for each user and choose lottery winner.
+ 	Count each users tickets to get a total. Choose random number
+ 	out of the total. Put winner in MAX_USER_Q and schedule_processed. */
+
+ }

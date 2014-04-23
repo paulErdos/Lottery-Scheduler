@@ -15,32 +15,13 @@ all:
 
 copy-all:
 	cd usr/include/minix; make
-	cd usr/src/kernel; make
 	cd usr/src/servers/sched; make
 
 copy-config:
 	cd usr/include/minix; make
-
-copy-proc_c:
-	cd usr/src/kernel; make proc_c
-
-copy-proc_h:
-	cd usr/src/kernel; make proc_h
-
-copy-main:
-	cd usr/src/servers/sched; make main
-
-copy-proto:
-	cd usr/src/servers/sched; make proto
-
-copy-sched:
-	cd usr/src/servers/sched; make sched
 
 copy-schedproc:
 	cd usr/src/servers/sched; make schedproc
 
 copy-schedule:
 	cd usr/src/servers/sched; make schedule
-
-copy-utility:
-	cd usr/src/servers/sched; make utility
