@@ -288,8 +288,4 @@ PRIVATE void balance_queues(struct timer *tp)
  {
  	struct schedproc *rmp; /* The process. */
  	int rv, proc_nr_n;
- 	/* Collect tickets for each user and choose lottery winner.
- 	Count each users tickets to get a total. Choose random number
- 	out of the total. Put winner in MAX_USER_Q and schedule_processed. */
-
  }
