@@ -50,9 +50,8 @@ PUBLIC int do_noquantum(message *m_ptr)
 
     if (check_if_user(rmp)) { /* If we have a user process that is out of quantum. */
         rmp->priority = LOSER_Q; /* Put it in the loser queue. */
-        super_lotto(); /* Play the lottery. */
     }
-    else if (rmp->priority < (WINNER_Q - 1)) { /* Kernel process if this priority is less than the max priority for the user minus 1. */
+    else if (rmp->priority < (MAX_USER_Q - 1)) { /* Kernel process if this priority is less than the max priority for the user minus 1. */
         rmp->priority += 1; /* lower priority */
     }
 
@@ -61,6 +60,8 @@ PUBLIC int do_noquantum(message *m_ptr)
     if ((rv = schedule_process(rmp)) != OK) {
         return rv;
     }
+
+    super_lotto(); /* Play the lottery. */
     
     return OK;
 }
@@ -88,7 +89,7 @@ PUBLIC int do_stop_scheduling(message *m_ptr)
 
     /* CHANGED START (4-21-2014) */
 
-    /* super_lotto(); */ /* Play the lottery since this process died. */
+    super_lotto(); /* Play the lottery since this process died. */
 
     /* CHANGED END (4-21-2014) */
 
@@ -145,9 +146,9 @@ PUBLIC int do_start_scheduling(message *m_ptr)
                 &parent_nr_n)) != OK)
             return rv;
 
-        /* CHANGED START (4-21-2014) */
-
         rmp->time_slice = schedproc[parent_nr_n].time_slice;
+
+        /* CHANGED START (4-21-2014) */
 
         rmp->ticket_count = 20; /* We have a user process! Give it 20 tickets. */
         rmp->priority = LOSER_Q; /* Put it in the loser queue until it wins. */
@@ -232,9 +233,9 @@ PUBLIC int do_nice(message *m_ptr)
         printf("error - cannot give this process less that 1 ticket, or more than 100 tickets.\n");
     }
 
-    /* CHANGED END (4-21-2014) */
+    return super_lotto(); /* schedule_process(rmp);*/
 
-    return schedule_process(rmp);
+    /* CHANGED END (4-21-2014) */
 }
 
 /*===========================================================================*
@@ -306,13 +307,12 @@ PRIVATE void balance_queues(struct timer *tp)
  *              super_lotto                  *
  *===========================================================================*/
  /* This function plays the lottery. If a processes wins then it is executed, otherwise it waits. */
- PRIVATE void super_lotto(void)
+ PRIVATE int super_lotto(void)
  {
     struct schedproc *rmp; /* The process. */
     int proc_nr;
     int total_tickets = 0; /* The total number of tickets in all the processes. */
     int winning_ticket = 0; /* Holds winning ticket location. */
-    int found_winner = 0; /* Indicates if we found winner. */
 
     /* Loop through each process and count up all the tickets. */
     for (proc_nr = 0, rmp = schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
@@ -321,33 +321,25 @@ PRIVATE void balance_queues(struct timer *tp)
         }
     }
 
-    if (total_tickets) {
-        winning_ticket = rand() % total_tickets + 1;
-    }
-    else {
-        winning_ticket = 0;
-    }
+    winning_ticket = rand() % total_tickets + 1;
 
     /*printf("\nsuper_lotto() - winning_ticket = %d, total_tickets = %d\n", winning_ticket, total_tickets);*/
 
     for (proc_nr = 0, rmp = schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
         if ( (rmp->flags & IN_USE) && check_if_user(rmp) ) { /* If we have an in-use user process. */
-            if (winning_ticket > 0) {
+            if (winning_ticket >= 0) {
                 winning_ticket -= rmp->ticket_count; /* Find the winning ticket process. */
             }
 
-            if (winning_ticket <= 0 && !found_winner) {
+            if (winning_ticket < 0) {
                 rmp->priority = WINNER_Q;
 
-                schedule_process(rmp);
-
-                found_winner = 1;
-            }
-            else {
-            	rmp->priority = LOSER_Q;
+                return schedule_process(rmp);
             }
         }
     }
+
+    return OK;
  }
 
  /*===========================================================================*
@@ -358,7 +350,7 @@ PRIVATE void balance_queues(struct timer *tp)
   */
  PRIVATE int check_if_user(struct schedproc *rmp)
  {
-    if (rmp->priority >= WINNER_Q) {
+    if (rmp->priority >= WINNER_Q && rmp->priority <= LOSER_Q) {
         return 1;
     }
 
