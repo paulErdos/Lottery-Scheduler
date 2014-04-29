@@ -12,9 +12,9 @@ Currently runs in MINIX 3 in ~10.41 seconds as specified.
 #include <unistd.h>
 
 #define MAX_INT 2147483648   /* Max integer size on MINIX 3. */
-#define LOOP_CHECK 100000    /* Check to exit loop and check to print status every LOOP_CHECK. */
+#define LOOP_CHECK 250000    /* Check to exit loop and check to print status every LOOP_CHECK (100000). */
 #define MAX_CHECK 50000      /* Max number of times we can check to exit or check to print. */
-#define DIVISOR_CHECK 20000  /* Helps decide when to print. */
+#define DIVISOR_CHECK 150  /* Helps decide when to print. */
 
 /*
 main(int argc, char *argv[]): The entry point.
