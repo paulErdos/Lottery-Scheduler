@@ -22,7 +22,7 @@ EXTERN struct schedproc {
 	/* User space scheduling */
 	unsigned max_priority;	/* this process' highest allowed priority */
 	unsigned priority;		/* the process' current priority */
-	unsigned time_slice;		/* this process's time slice */
+	unsigned time_slice;    /* this process's time slice */
 
     /* CHANGED START (4-21-2014) */
     unsigned ticket_count;     /* the number of tickets this process has. */

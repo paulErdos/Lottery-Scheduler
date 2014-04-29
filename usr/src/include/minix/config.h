@@ -83,9 +83,9 @@
 
 #define MAX_USER_Q       14    /* highest priority for user processes */  
 
-#define WINNER_Q MAX_USER_Q
+#define WINNER_Q MAX_USER_Q    /* Winner queue is the highest priority user queue (14). */
 
-#define LOSER_Q 15
+#define LOSER_Q 15             /* Loser queue is the lowest priority user queue (15). */
 /* CHANGED END (4-21-2014) */ 
 
 #define USER_Q  	  ((MIN_USER_Q - MAX_USER_Q) / 2 + MAX_USER_Q) /* default
