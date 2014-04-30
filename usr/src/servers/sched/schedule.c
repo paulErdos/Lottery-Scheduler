@@ -18,8 +18,11 @@ PRIVATE timer_t sched_timer;
 PRIVATE unsigned balance_timeout;
 
 /* CHANGED START (4-21-2014) */
-#define MIN_TICKETS 1
-#define MAX_TICKETS 100
+
+#define MIN_TICKETS 1   /* Minimum number of tickets a process can have. */
+
+#define MAX_TICKETS 100 /* Maximum number of tickets a process can have. */
+
 /* CHANGED END (4-21-2014) */
 
 #define BALANCE_TIMEOUT 5 /* how often to balance queues in seconds */
@@ -50,9 +53,10 @@ PUBLIC int do_noquantum(message *m_ptr)
 
     if (check_if_user(rmp)) { /* If we have a user process that is out of quantum. */
         rmp->priority = LOSER_Q; /* Put it in the loser queue. */
+        super_lotto(); /* Play the lottery. */
     }
-    else if (rmp->priority < (MAX_USER_Q - 1)) { /* Kernel process if this priority is less than the max priority for the user minus 1. */
-        rmp->priority += 1; /* lower priority */
+    else if (rmp->priority < (MAX_USER_Q - 1)) { /* Kernel process. If this priority is less than the max priority for the user minus 1. */
+        rmp->priority += 1; /* Lower priority. */
     }
 
     /* CHANGED END (4-21-2014) */
@@ -60,8 +64,6 @@ PUBLIC int do_noquantum(message *m_ptr)
     if ((rv = schedule_process(rmp)) != OK) {
         return rv;
     }
-
-    super_lotto(); /* Play the lottery. */
     
     return OK;
 }
@@ -196,12 +198,12 @@ PUBLIC int do_start_scheduling(message *m_ptr)
 PUBLIC int do_nice(message *m_ptr)
 {
     struct schedproc *rmp;
-    int proc_nr_n;
+    int proc_nr_n, rv;
 
     /* CHANGED START (4-21-2014) */
 
     int tickets_passed; /* How many tickets were passed to this function. */
-    int new_ticket_total;
+    int new_ticket_total; /* How many tickets will this process have after nice(). */
 
     /* CHANGED END (4-21-2014) */
 
@@ -221,19 +223,16 @@ PUBLIC int do_nice(message *m_ptr)
 
     tickets_passed = m_ptr->SCHEDULING_MAXPRIO; /* Get how many tickets passed to the nice() command. */
 
-    printf("\ndo_nice() - tickets passed to nice() = %d\n", tickets_passed);
-
     new_ticket_total = (rmp->ticket_count + tickets_passed);
 
     if (new_ticket_total <= MAX_TICKETS && new_ticket_total >= MIN_TICKETS) {
         rmp->ticket_count = new_ticket_total; /* Allot those tickets to this process. */
-        printf("\ndo_nice() - processes new ticket count = %d\n", rmp->ticket_count);
     }
     else { /* Else print error. */
         printf("error - cannot give this process less that 1 ticket, or more than 100 tickets.\n");
     }
 
-    return super_lotto(); /* schedule_process(rmp);*/
+    return schedule_process(rmp);
 
     /* CHANGED END (4-21-2014) */
 }
@@ -258,7 +257,6 @@ PRIVATE int schedule_process(struct schedproc * rmp)
 /*===========================================================================*
  *              start_scheduling                 *
  *===========================================================================*/
-
 PUBLIC void init_scheduling(void)
 {
     balance_timeout = BALANCE_TIMEOUT * sys_hz();
@@ -281,20 +279,22 @@ PRIVATE void balance_queues(struct timer *tp)
     int proc_nr;
     int rv;
 
-    /* ONLY NEED TO INCREASE FOR SYSTEM PROCESSES. */
     for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
         if (rmp->flags & IN_USE) {
-            if (rmp->priority > rmp->max_priority) {
 
-                /* CHANGED START (4-24-2014) */
+            /* CHANGED START (4-24-2014) */
 
-                if (!check_if_user(rmp)) { /* If it is a system process. */
-                    rmp->priority -= 1; /* increase priority */
-                    schedule_process(rmp);
-                }
-
-                /* CHANGED END (4-24-2014) */
+            if ( (rmp->priority > rmp->max_priority) && (!check_if_user(rmp)) ) {
+                rmp->priority -= 1; /* Increase priority (default behavior). */
             }
+
+            if (check_if_user(rmp)) { /* If we have a user process. */
+                rmp->priority = LOSER_Q; /* Put it in the loser queue. */
+            }
+
+            schedule_process(rmp); /* Reschedule to make sure the changes occur. */
+
+            /* CHANGED END (4-24-2014) */
         }
     }
 
@@ -306,55 +306,50 @@ PRIVATE void balance_queues(struct timer *tp)
 /*===========================================================================*
  *              super_lotto                  *
  *===========================================================================*/
- /* This function plays the lottery. If a processes wins then it is executed, otherwise it waits. */
- PRIVATE int super_lotto(void)
- {
+PRIVATE void super_lotto(void)
+{
     struct schedproc *rmp; /* The process. */
     int proc_nr;
     int total_tickets = 0; /* The total number of tickets in all the processes. */
     int winning_ticket = 0; /* Holds winning ticket location. */
 
-    /* Loop through each process and count up all the tickets. */
+    /* Loop through each process, and count up all the tickets. */
     for (proc_nr = 0, rmp = schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
         if ( (rmp->flags & IN_USE) && check_if_user(rmp) ) { /* If we have an in-use user process. */
-            total_tickets += rmp->ticket_count;
+            total_tickets += rmp->ticket_count; /* Tally the total number of tickets. */
         }
     }
 
-    winning_ticket = rand() % total_tickets + 1;
+    winning_ticket = rand() % total_tickets + 1; /* Pick a winning ticket. */
 
-    /*printf("\nsuper_lotto() - winning_ticket = %d, total_tickets = %d\n", winning_ticket, total_tickets);*/
-
+    /* Loop through each process to see who has the winning ticket. */
     for (proc_nr = 0, rmp = schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
-        if ( (rmp->flags & IN_USE) && check_if_user(rmp) ) { /* If we have an in-use user process. */
+        if ( (rmp->flags & IN_USE) && check_if_user(rmp) ) { /* If we have an in-use, user process. */
             if (winning_ticket >= 0) {
-                winning_ticket -= rmp->ticket_count; /* Find the winning ticket process. */
+                winning_ticket -= rmp->ticket_count; /* Range check to see if winning ticket is in this processes range. */
             }
 
-            if (winning_ticket < 0) {
-                rmp->priority = WINNER_Q;
+            if (winning_ticket < 0) { /* If the winning ticket is in the range. */
+                rmp->priority = WINNER_Q; /* Put the process in the winning queue. */
 
-                return schedule_process(rmp);
+                schedule_process(rmp); /* Reschedule to promote the winner. */
+
+                break; /* Don't need to loop anymore. */
             }
         }
     }
+}
 
-    return OK;
- }
-
- /*===========================================================================*
+/*===========================================================================*
  *              check_if_user                *
  *===========================================================================*/
- /* This functions checks if a process is a user process.
-  * It returns 1 if it is, and 0 otherwise. 
-  */
- PRIVATE int check_if_user(struct schedproc *rmp)
- {
+PRIVATE int check_if_user(struct schedproc *rmp)
+{
     if (rmp->priority >= WINNER_Q && rmp->priority <= LOSER_Q) {
-        return 1;
+        return 1; /* Return true if we have a user process. */
     }
 
-    return 0;
- }
+    return 0; /* False otherwise. */
+}
 
  /* CHANGED END (4-23-2014) */
