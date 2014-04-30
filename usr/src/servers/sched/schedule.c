@@ -89,12 +89,6 @@ PUBLIC int do_stop_scheduling(message *m_ptr)
     rmp = &schedproc[proc_nr_n];
     rmp->flags = 0; /*&= ~IN_USE;*/
 
-    /* CHANGED START (4-21-2014) */
-
-    super_lotto(); /* Play the lottery since this process died. */
-
-    /* CHANGED END (4-21-2014) */
-
     return OK;
 }
 
