@@ -22,7 +22,10 @@ Build Instructions for Dynamic Scheduler:
 3. Type shutdown.
 4. Type exit to reboot the newly built system.
 
-Quick Testing the Static Scheduler
+Quick Testing the Static Scheduler:
+1. In the test directory type 'make' to build both the tests.
+
+Quick Testing the Dynamic Scheduler:
 1. In the test directory type 'make' to build both the tests.
 
 Directory Structure:
