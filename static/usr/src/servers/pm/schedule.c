@@ -97,14 +97,16 @@ PUBLIC int sched_nice(struct mproc *rmp, int nice)
 	if (rmp->mp_scheduler == KERNEL || rmp->mp_scheduler == NONE)
 		return (EINVAL);
 
+	/* CHANGED START (4-27-2014) */
 	if ((rv = nice_to_priority(nice, &maxprio)) != OK) {
 		return rv;
 	}
+	/* CHANGED END (4-27-2014) */
 
 	m.SCHEDULING_ENDPOINT	= rmp->mp_endpoint;
 
 	/* CHANGED START (4-27-2014) */
-	m.SCHEDULING_MAXPRIO	= nice;
+	m.SCHEDULING_MAXPRIO	= nice; /* Pass the value of nice to our lottery scheduler. */
 	/* CHANGED END (4-27-2014) */
 	
 	if ((rv = _taskcall(rmp->mp_scheduler, SCHEDULING_SET_NICE, &m))) {

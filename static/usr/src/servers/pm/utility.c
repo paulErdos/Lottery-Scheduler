@@ -109,11 +109,7 @@ pid_t lpid;
  *===========================================================================*/
 PUBLIC int nice_to_priority(int nice, unsigned* new_q)
 {
-    /* CHANGED START (4-28-2014) */
-
 	/*if (nice < PRIO_MIN || nice > PRIO_MAX) return(EINVAL);*/
-    
-    /* CHANGED END (4-28-2014) */
 
 	*new_q = MAX_USER_Q + (nice-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) /
 	    (PRIO_MAX-PRIO_MIN+1);

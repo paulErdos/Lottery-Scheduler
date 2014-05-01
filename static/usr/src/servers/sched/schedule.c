@@ -217,7 +217,7 @@ PUBLIC int do_nice(message *m_ptr)
 
     tickets_passed = m_ptr->SCHEDULING_MAXPRIO; /* Get how many tickets passed to the nice() command. */
 
-    new_ticket_total = (rmp->ticket_count + tickets_passed);
+    new_ticket_total = (rmp->ticket_count + tickets_passed); /* Total tickets after added to tickets passed from nice(). */
 
     if (new_ticket_total <= MAX_TICKETS && new_ticket_total >= MIN_TICKETS) {
         rmp->ticket_count = new_ticket_total; /* Allot those tickets to this process. */
@@ -271,9 +271,8 @@ PRIVATE void balance_queues(struct timer *tp)
 {
     struct schedproc *rmp;
     int proc_nr;
-    int rv;
 
-    for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
+    for (proc_nr = 0, rmp = schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
         if (rmp->flags & IN_USE) {
 
             /* CHANGED START (4-24-2014) */
@@ -282,11 +281,7 @@ PRIVATE void balance_queues(struct timer *tp)
                 rmp->priority -= 1; /* Increase priority (default behavior). */
             }
 
-            if (check_if_user(rmp)) { /* If we have a user process. */
-                rmp->priority = LOSER_Q; /* Put it in the loser queue. */
-            }
-
-            schedule_process(rmp); /* Reschedule to make sure the changes occur. */
+            schedule_process(rmp); /* Reschedule all in use processes to make sure the changes occur. */
 
             /* CHANGED END (4-24-2014) */
         }
@@ -302,8 +297,8 @@ PRIVATE void balance_queues(struct timer *tp)
  *===========================================================================*/
 PRIVATE void super_lotto(void)
 {
-    struct schedproc *rmp; /* The process. */
-    int proc_nr;
+    struct schedproc *rmp = 0, *winner = 0; /* The process. */
+    int proc_nr = 0;
     int total_tickets = 0; /* The total number of tickets in all the processes. */
     int winning_ticket = 0; /* Holds winning ticket location. */
 
@@ -323,14 +318,18 @@ PRIVATE void super_lotto(void)
                 winning_ticket -= rmp->ticket_count; /* Range check to see if winning ticket is in this processes range. */
             }
 
-            if (winning_ticket < 0) { /* If the winning ticket is in the range. */
+            if (!winner && winning_ticket < 0) { /* If the winning ticket is in the range. */
                 rmp->priority = WINNER_Q; /* Put the process in the winning queue. */
-
-                schedule_process(rmp); /* Reschedule to promote the winner. */
-
-                break; /* Don't need to loop anymore. */
+                winner = rmp; /* Make note of the winner. */
+            }
+            else {
+                rmp->priority = LOSER_Q; /* If the process loses, put it in the loser queue. */
             }
         }
+    }
+
+    if (winner) {
+        schedule_process(winner); /* Reschedule to promote the winner. */
     }
 }
 
