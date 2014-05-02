@@ -53,6 +53,7 @@ PUBLIC int do_noquantum(message *m_ptr)
 
     if (check_if_user(rmp)) { /* If we have a user process that is out of quantum. */
         rmp->priority = LOSER_Q; /* Put it in the loser queue. */
+        rmp->out_of_quantum = 1; /* Make sure we know this process ran out of quantum. */
         super_lotto(); /* Play the lottery. */
     }
     else if (rmp->priority < (MAX_USER_Q - 1)) { /* Kernel process. If this priority is less than the max priority for the user minus 1. */
@@ -148,6 +149,7 @@ PUBLIC int do_start_scheduling(message *m_ptr)
 
         rmp->ticket_count = 20; /* We have a user process! Give it 20 tickets. */
         rmp->priority = LOSER_Q; /* Put it in the loser queue until it wins. */
+        rmp->out_of_quantum = 0; /* This process has not run out of quantum yet. */
 
         /* CHANGED END (4-21-2014) */
         
@@ -305,6 +307,7 @@ PRIVATE void super_lotto(void)
     /* Loop through each process, and count up all the tickets. */
     for (proc_nr = 0, rmp = schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
         if ( (rmp->flags & IN_USE) && check_if_user(rmp) ) { /* If we have an in-use user process. */
+            adjust_tickets(rmp); /* First adjust tickets dynamically. */
             total_tickets += rmp->ticket_count; /* Tally the total number of tickets. */
         }
     }
@@ -343,6 +346,26 @@ PRIVATE int check_if_user(struct schedproc *rmp)
     }
 
     return 0; /* False otherwise. */
+}
+
+/*===========================================================================*
+ *              adjust_tickets                *
+ *===========================================================================*/
+PRIVATE void adjust_tickets(struct schedproc *rmp)
+{
+    if (check_if_user(rmp)) { /* If we have a user process. */
+        if (rmp->out_of_quantum) { /* If that user was out of quantum the last check. */
+                    
+            if (rmp->ticket_count > 1) { /* If it has more than 1 ticket. */
+                rmp->ticket_count -= 1; /* Decrease its ticket by one. */
+            }
+
+            rmp->out_of_quantum = 0; /* Reset it's quantum flag. */
+        }
+        else if (rmp->ticket_count < 100) { /* If we have a user process this is not out of quantum and has fewer than 100 tickets. */
+            rmp->ticket_count += 1; /* Increase it's ticket count by one. */
+        }
+    }
 }
 
  /* CHANGED END (4-23-2014) */

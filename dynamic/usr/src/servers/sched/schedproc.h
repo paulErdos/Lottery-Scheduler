@@ -25,7 +25,8 @@ EXTERN struct schedproc {
 	unsigned time_slice;    /* this process's time slice */
 
     /* CHANGED START (4-21-2014) */
-    unsigned ticket_count;     /* the number of tickets this process has. */
+    unsigned ticket_count;     /* The number of tickets this process has. */
+    unsigned out_of_quantum;   /* 1 if the process ran out of quantum the last check. 0 otherwise. */
     /* CHANGED END (4-21-2014) */
 
 } schedproc[NR_PROCS];

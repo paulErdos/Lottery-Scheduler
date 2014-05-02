@@ -20,7 +20,6 @@ PRIVATE unsigned balance_timeout;
 /* CHANGED START (4-21-2014) */
 
 #define MIN_TICKETS 1   /* Minimum number of tickets a process can have. */
-
 #define MAX_TICKETS 100 /* Maximum number of tickets a process can have. */
 
 /* CHANGED END (4-21-2014) */
@@ -192,7 +191,7 @@ PUBLIC int do_start_scheduling(message *m_ptr)
 PUBLIC int do_nice(message *m_ptr)
 {
     struct schedproc *rmp;
-    int proc_nr_n, rv;
+    int proc_nr_n;
 
     /* CHANGED START (4-21-2014) */
 
